@@ -5,10 +5,15 @@ const {
   getData,
   insertData,
   updateData,
+  deleteData,
 } = require("../../utils/dbHelper");
 
+const { ApiResponse } = require("../../utils/ApiResponse");
+const { ApiError } = require("../../utils/ApiError");
+
 // 🔹 Add to Cart
-exports.addToCart = async (req, res) => {
+// 🔹 Add to Cart
+exports.addToCart = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { product_id, quantity } = req.body;
@@ -20,7 +25,7 @@ exports.addToCart = async (req, res) => {
     });
 
     if (!product.length) {
-      return res.status(404).json({ message: "Product not found" });
+      throw new ApiError(404, "Product not found");
     }
 
     // 2. get or create cart
@@ -57,16 +62,15 @@ exports.addToCart = async (req, res) => {
       });
     }
 
-    res.json({ message: "Added to cart" });
+    return res.json(new ApiResponse(200, null, "Added to cart"));
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    next(error);
   }
 };
 
 
-exports.getCart = async (req, res) => {
+exports.getCart = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
@@ -86,46 +90,43 @@ exports.getCart = async (req, res) => {
       [userId]
     );
 
-    res.json({
-      success: true,
-      data: cartItems,
-    });
+    return res.json(new ApiResponse(200, cartItems, "Cart items fetched"));
 
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    next(error);
   }
 };
 
 
-exports.updateCartItem = async (req, res) => {
+exports.updateCartItem = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { quantity } = req.body;
 
     if (quantity <= 0) {
-      return res.status(400).json({ message: "Invalid quantity" });
+      throw new ApiError(400, "Invalid quantity");
     }
 
     await updateData("cart_items", { quantity }, { id });
 
-    res.json({ message: "Cart updated" });
+    return res.json(new ApiResponse(200, null, "Cart updated"));
 
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    next(error);
   }
 };
 
 
 
-exports.removeCartItem = async (req, res) => {
+exports.removeCartItem = async (req, res, next) => {
   try {
     const { id } = req.params;
 
     await deleteData("cart_items", { id });
 
-    res.json({ message: "Item removed" });
+    return res.json(new ApiResponse(200, null, "Item removed"));
 
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    next(error);
   }
 };

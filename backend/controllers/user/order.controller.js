@@ -7,7 +7,10 @@ const {
 
 const { getConnection } = require("../../config/db");
 
-exports.placeOrder = async (req, res) => {
+const { ApiResponse } = require("../../utils/ApiResponse");
+const { ApiError } = require("../../utils/ApiError");
+
+exports.placeOrder = async (req, res, next) => {
   const connection = await getConnection();
 
   try {
@@ -96,20 +99,14 @@ exports.placeOrder = async (req, res) => {
     //  COMMIT
     await connection.commit();
 
-    res.json({
-      message: "Order placed successfully",
-      orderId,
-    });
+    return res.json(
+      new ApiResponse(200, { orderId }, "Order placed successfully")
+    );
 
   } catch (error) {
     //  ROLLBACK
     await connection.rollback();
-
-    console.error(error);
-
-    res.status(400).json({
-      message: error.message || "Order failed",
-    });
+    next(new ApiError(400, error.message || "Order failed"));
 
   } finally {
     connection.release();
@@ -117,23 +114,20 @@ exports.placeOrder = async (req, res) => {
 };
 
 
-exports.getMyOrders = async (req, res) => {
+exports.getMyOrders = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
     const orders = await getData("orders", { user_id: userId });
 
-    res.json({
-      success: true,
-      data: orders,
-    });
+    return res.json(new ApiResponse(200, orders, "Orders fetched"));
 
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    next(error);
   }
 };
 
-exports.getOrderDetails = async (req, res) => {
+exports.getOrderDetails = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -151,13 +145,10 @@ exports.getOrderDetails = async (req, res) => {
       [id]
     );
 
-    res.json({
-      success: true,
-      data: orderItems,
-    });
+    return res.json(new ApiResponse(200, orderItems, "Order details fetched"));
 
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    next(error);
   }
 };
 

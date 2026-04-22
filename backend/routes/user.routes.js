@@ -8,6 +8,8 @@ const auth = require("../middleware/auth");
 const userController = require("../controllers/user/user.controller");
 const cartController = require("../controllers/user/cart.controller");
 const orderController = require("../controllers/user/order.controller");
+const addressController = require("../controllers/user/address.controller");
+
 
 
 
@@ -25,5 +27,10 @@ router.post("/orders", auth, orderController.placeOrder);
 router.get("/orders", auth, orderController.getMyOrders);
 router.get("/orders/:id", auth, orderController.getOrderDetails);
 
+// Address routes
+router.post("/address", auth, addressController.addAddress);
+router.get("/address", auth, addressController.getAddresses);
+router.put("/address/:id", auth, addressController.updateAddress);
+router.delete("/address/:id", auth, addressController.deleteAddress);
 
 module.exports = router;

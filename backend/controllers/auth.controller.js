@@ -11,21 +11,25 @@ const {
   generateRefreshToken,
 } = require("../utils/tokenHelper");
 
+const { ApiResponse } = require("../utils/ApiResponse");
+const { ApiError } = require("../utils/ApiError");
+
 
 //  REGISTER
-exports.register = async (req, res) => {
+//  REGISTER
+exports.register = async (req, res, next) => {
   try {
     const { name, email, password, phone } = req.body;
 
     if (!name || !email || !password) {
-      return res.status(400).json({ message: "All fields required" });
+      throw new ApiError(400, "All fields required");
     }
 
     // check existing
     const existing = await getData("users", { email });
 
     if (existing.length) {
-      return res.status(400).json({ message: "Email already exists" });
+      throw new ApiError(400, "Email already exists");
     }
 
     // hash password
@@ -40,72 +44,74 @@ exports.register = async (req, res) => {
       role: "user",
     });
 
-    res.status(201).json({
-      message: "User registered",
-      userId,
-    });
+    return res
+      .status(201)
+      .json(new ApiResponse(201, { userId }, "User registered"));
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    next(error);
   }
 };
 
 
-exports.login = async (req, res) => {
+exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
     const users = await getData("users", { email });
 
     if (!users.length) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      throw new ApiError(400, "Invalid credentials");
     }
 
     const user = users[0];
 
     // check status
     if (user.status === "blocked") {
-      return res.status(403).json({ message: "User blocked" });
+      throw new ApiError(403, "User blocked");
     }
 
     // password check
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      throw new ApiError(400, "Invalid credentials");
     }
 
     // tokens
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
-    res.json({
-      message: "Login successful",
-      accessToken,
-      refreshToken,
-      user: {
-        id: user.id,
-        name: user.name,
-        role: user.role,
-      },
-    });
+    return res.json(
+      new ApiResponse(
+        200,
+        {
+          accessToken,
+          refreshToken,
+          user: {
+            id: user.id,
+            name: user.name,
+            role: user.role,
+          },
+        },
+        "Login successful"
+      )
+    );
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    next(error);
   }
 };
 
 
 const jwt = require("jsonwebtoken");
 
-exports.refreshToken = async (req, res) => {
+exports.refreshToken = async (req, res, next) => {
   try {
     const { token } = req.body;
 
     if (!token) {
-      return res.status(401).json({ message: "No refresh token" });
+      throw new ApiError(401, "No refresh token");
     }
 
     const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
@@ -113,16 +119,16 @@ exports.refreshToken = async (req, res) => {
     const users = await getData("users", { id: decoded.id });
 
     if (!users.length) {
-      return res.status(401).json({ message: "User not found" });
+      throw new ApiError(401, "User not found");
     }
 
     const newAccessToken = generateAccessToken(users[0]);
 
-    res.json({
-      accessToken: newAccessToken,
-    });
+    return res.json(
+      new ApiResponse(200, { accessToken: newAccessToken }, "Token refreshed")
+    );
 
   } catch (error) {
-    return res.status(401).json({ message: "Invalid refresh token" });
+    next(new ApiError(401, "Invalid refresh token"));
   }
 };

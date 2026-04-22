@@ -2,7 +2,10 @@
 
 const { rawQuery } = require("../../utils/dbHelper");
 
-exports.getAllProducts = async (req, res) => {
+const { ApiResponse } = require("../../utils/ApiResponse");
+const { ApiError } = require("../../utils/ApiError");
+
+exports.getAllProducts = async (req, res, next) => {
   try {
     const { search, category, sort } = req.query;
 
@@ -31,13 +34,9 @@ exports.getAllProducts = async (req, res) => {
 
     const products = await rawQuery(query, values);
 
-    res.json({
-      success: true,
-      data: products,
-    });
+    return res.json(new ApiResponse(200, products, "Products fetched"));
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    next(error);
   }
 };
