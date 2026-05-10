@@ -5,8 +5,7 @@ const { rawQuery, updateData } = require("../../utils/dbHelper");
 const { ApiResponse } = require("../../utils/ApiResponse");
 const { ApiError } = require("../../utils/ApiError");
 
-// 🔹 Get All Orders
-// 🔹 Get All Orders
+
 exports.getAllOrders = async (req, res, next) => {
   try {
     const orders = await rawQuery(`
